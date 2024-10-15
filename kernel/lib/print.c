@@ -23,7 +23,10 @@ void printf(const char *fmt, ...)
 
 void panic(const char *s)
 {
-
+  printf("panic: ");
+  printf(s);
+  printf("\n");
+  panicked = 1; // 设置全局变量，令其它cpu也无法使用
 }
 
 void assert(bool condition, const char* warning)
