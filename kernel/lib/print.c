@@ -36,7 +36,7 @@ printint(int xx, int base, int sign)
   //xx是传入值，base是进制基数
   char buf[16];
   int i;
-  uint x;
+  uint32 x;
 
   //判断符号
   if(sign && (sign = xx < 0))
@@ -56,7 +56,7 @@ printint(int xx, int base, int sign)
     uart_putc_sync(buf[i]);
 }
 
-void printf(char *fmt, ...)
+void printf(const char *fmt, ...)
 {
   va_list ap;
   int i, c;
@@ -103,7 +103,7 @@ void printf(char *fmt, ...)
     }
   }
 
-  release(&pr.lock);
+  spinlock_release(&print_lk);
 }
 
 void panic(const char *s)
