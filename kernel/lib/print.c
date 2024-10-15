@@ -114,6 +114,7 @@ void panic(const char *s)
   panicked = 1; // 设置全局变量，令其它cpu也无法使用
 }
 
+//断言函数
 void assert(bool condition, const char* warning)
 {
   if(!condition)

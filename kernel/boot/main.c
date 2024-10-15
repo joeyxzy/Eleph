@@ -11,10 +11,6 @@ int main()
         print_init();
         printf("\n");
         printf("Eleph kernel is booting\n");
-        int x=199;
-        printf("asdasdas\n");
-        printf("aaa%d",x);
-        //printf("%d %p %x %% %s\n", 123, 128, 128, "hello");
         printf("\n");
     }
     while (1);    
