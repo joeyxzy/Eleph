@@ -7,9 +7,6 @@
 #define KERNEL true
 #define USER false
 
-extern char end[];
-//经过kernel.ld连接器操作后，KERNBASE起始往后的RAM已经被用掉一部分，新的开头是end
-
 // 物理页节点
 typedef struct page_node {
     struct page_node* next;
@@ -32,14 +29,16 @@ static alloc_region_t kern_region, user_region;
 // 物理内存初始化
 void pmem_init(void)
 {
-  //先初始化内核可分配区域
-  kern_region.begin = (uint64)end;
-  kern_region.end = kern_region.begin + KERN_PAGES * PGSIZE;
-  kern_region.allocable = KERN_PAGES;
-  spinlock_init(&kern_region.lk, "kern_region");
-  freerange((void*)kern_region.begin, (void*)kern_region.end, KERNEL);
-  //再初始化用户可分配区域
-
+    //先初始化内核可分配区域
+    kern_region.begin = (uint64)ALLOC_BEGIN;
+    kern_region.end = kern_region.begin + KERN_PAGES * PGSIZE;
+    spinlock_init(&kern_region.lk, "kern_region");
+    freerange((void*)kern_region.begin, (void*)kern_region.end, KERNEL);
+    //再初始化用户可分配区域
+    user_region.begin = kern_region.end;
+    user_region.end = (uint64)ALLOC_END;
+    spinlock_init(&user_region.lk, "user_region");
+    freerange((void*)user_region.begin, (void*)user_region.end, USER);
 }
 
 //释放一个范围的物理页，集体调用pmem_free
@@ -76,7 +75,7 @@ void* pmem_alloc(bool in_kernel)
 void pmem_free(uint64 page, bool in_kernel)
 {
     page_node_t *node;
-    if(page%PGSIZE || (in_kernel && (page >= kern_region.end||(char*)page<end))||(!in_kernel && (page >= user_region.end||page<kern_region.end)))
+    if(page%PGSIZE || (in_kernel && (page >= kern_region.end||(char*)page<kern_region.begin))||(!in_kernel && (page >= user_region.end||page<user_region.begin)))
     //确保在用户和内核各自的内存范围以内
     {
         panic("pmem_free: wrong page");
