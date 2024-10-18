@@ -20,8 +20,12 @@ typedef enum {false = 0, true = 1} bool;
 #define NULL ((void*)0)
 #endif
 
-#define NCPU 2
 
-#define PGSIZE 4096
+
+// OS 全局变量
+
+#define NCPU 2         // 最大CPU数量    
+#define PGSIZE 4096    // 物理页大小
+
 
 #endif
