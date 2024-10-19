@@ -1,11 +1,8 @@
 #include "mem/pmem.h"
+#include "mem/vmem.h"
 #include "lib/print.h"
 #include "lib/lock.h"
 #include "lib/str.h"
-
-//区分取锁时的判断参数
-#define KERNEL true
-#define USER false
 
 // 物理页节点
 typedef struct page_node {
@@ -63,7 +60,7 @@ void* pmem_alloc(bool in_kernel)
     {
         panic("pmem_alloc: out of memory");
     }
-    in_kernel?kern_region.list_head.next = node->next:user_region.list_head.next = node->next;
+    in_kernel?(kern_region.list_head.next = node->next):(user_region.list_head.next = node->next);
     in_kernel?kern_region.allocable--:user_region.allocable--;
     spinlock_release(in_kernel?&kern_region.lk:&user_region.lk);
     memset(node,2,PGSIZE);
@@ -75,16 +72,16 @@ void* pmem_alloc(bool in_kernel)
 void pmem_free(uint64 page, bool in_kernel)
 {
     page_node_t *node;
-    if(page%PGSIZE || (in_kernel && (page >= kern_region.end||(char*)page<kern_region.begin))||(!in_kernel && (page >= user_region.end||page<user_region.begin)))
+    if(page%PGSIZE || (in_kernel && (page >= kern_region.end||page<kern_region.begin))||(!in_kernel && (page >= user_region.end||page<user_region.begin)))
     //确保在用户和内核各自的内存范围以内
     {
         panic("pmem_free: wrong page");
     }
-    memset(page, 1 ,PGSIZE);
+    memset((char* )page, 1 ,PGSIZE);
     node = (page_node_t*)page;
     spinlock_acquire(in_kernel?&kern_region.lk:&user_region.lk);
     node->next = in_kernel?kern_region.list_head.next:user_region.list_head.next;
-    in_kernel?kern_region.list_head.next = node:user_region.list_head.next = node;
+    in_kernel?(kern_region.list_head.next = node):(user_region.list_head.next = node);
     in_kernel?kern_region.allocable++:user_region.allocable++;
     //维护个数变量
     spinlock_release(in_kernel?&kern_region.lk:&user_region.lk);

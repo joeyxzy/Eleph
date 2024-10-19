@@ -16,7 +16,25 @@ static pgtbl_t kernel_pgtbl; // 内核页表
 // 提示：使用 VA_TO_VPN PTE_TO_PA PA_TO_PTE
 pte_t* vm_getpte(pgtbl_t pgtbl, uint64 va, bool alloc)
 {
-
+    if(va>VA_MAX)
+        return 0;
+    for(int level=2;level>0;level--)
+    {
+        pte_t *pte=&pgtbl[VA_TO_VPN(va,level)];
+        if((*pte)&PTE_V)
+        {
+            pgtbl=(pgtbl_t)PTE_TO_PA(*pte);
+        }
+        else
+        {
+            if(!alloc)
+                return 0;
+            pgtbl=(pgtbl_t)pmem_alloc(KERNEL);
+            memset(pgtbl,0,PGSIZE);
+            *pte=PA_TO_PTE(pgtbl)|PTE_V;
+        }
+    }
+    return &pgtbl[VA_TO_VPN(va,0)];
 }
 
 // 在pgtbl中建立 [va, va + len) -> [pa, pa + len) 的映射
@@ -25,27 +43,74 @@ pte_t* vm_getpte(pgtbl_t pgtbl, uint64 va, bool alloc)
 // 注意: perm 应该如何使用
 void vm_mappages(pgtbl_t pgtbl, uint64 va, uint64 pa, uint64 len, int perm)
 {
-
+    uint64 now =PGROUNDDOWN(va);
+    uint64 end=PGROUNDDOWN(va+len-1);
+    pte_t *pte;
+    while(1)
+    {
+        if((pte=vm_getpte(pgtbl,now,true))==0)
+            panic("vm_mappgaes:getpte");
+        if((*pte)&PTE_V)
+            panic("vm_mappgaes:remap");
+        *pte=PA_TO_PTE(pa)|PTE_V|perm;
+        if(now==end)
+            break;
+        now+=PGSIZE;
+        pa+=PGSIZE;
+    }
+    return ;
 }
 
 // 解除pgtbl中[va, va+len)区域的映射
 // 如果freeit == true则释放对应物理页, 默认是用户的物理页
 void vm_unmappages(pgtbl_t pgtbl, uint64 va, uint64 len, bool freeit)
 {
-
+    uint64 now =PGROUNDDOWN(va);
+    uint64 end=PGROUNDDOWN(va+len-1);
+    pte_t *pte;
+    while(1)
+    {
+        if((pte=vm_getpte(pgtbl,now,false))==0)
+            panic("vm_mappgaes:getpte");
+        if((*pte)&PTE_V)
+            panic("vm_mappgaes:not mapped");
+        if(freeit)
+            pmem_free(PTE_TO_PA(*pte),USER);
+        *pte=0;
+        if(now==end)
+            break;
+        now+=PGSIZE;
+    }
+    return ;
 }
 
 // 完成 UART CLINT PLIC 内核代码区 内核数据区 可分配区域 的映射
 // 相当于填充kernel_pgtbl
 void kvm_init()
 {
+    memset(kernel_pgtbl,0,PGSIZE);
+
+    vm_mappages(kernel_pgtbl,UART_BASE,UART_BASE,PGSIZE,PTE_R|PTE_W);
+
+    vm_mappages(kernel_pgtbl,PLIC_BASE,PLIC_BASE,0x400000,PTE_R|PTE_W);
+
+    vm_mappages(kernel_pgtbl,CLINT_BASE,CLINT_BASE,0x10000,PTE_R|PTE_W);
+
+    vm_mappages(kernel_pgtbl,KERNEL_BASE,KERNEL_BASE,(uint64)KERNEL_DATA-KERNEL_BASE,PTE_R|PTE_W);
+
+    vm_mappages(kernel_pgtbl,(uint64)KERNEL_DATA,(uint64)KERNEL_DATA,(uint64)ALLOC_BEGIN-(uint64)KERNEL_DATA,PTE_R|PTE_W);
+
+    vm_mappages(kernel_pgtbl,(uint64)ALLOC_BEGIN,(uint64)ALLOC_BEGIN,(uint64)ALLOC_END-(uint64)ALLOC_BEGIN,PTE_R|PTE_W);
 
 }
 
 // 使用新的页表，刷新TLB
 void kvm_inithart()
 {
-
+  //写入satp寄存器
+  w_satp(MAKE_SATP(kernel_pgtbl));
+  //清空TLB
+  sfence_vma();
 }
 
 // for debug

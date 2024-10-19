@@ -49,7 +49,7 @@ void spinlock_init(spinlock_t *lk, char *name)
 {
   lk->name = name;
   lk->locked = 0;
-  lk->cpuid = 0;
+  lk->cpuid = -1;
 }
 
 // 获取自旋锁

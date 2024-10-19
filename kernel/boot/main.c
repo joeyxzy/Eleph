@@ -3,6 +3,8 @@
 #include "lib/str.h"
 #include "proc/cpu.h"
 #include "mem/pmem.h"
+#include "mem/vmem.h"
+
 
 volatile static int started = 0;
 

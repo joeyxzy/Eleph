@@ -20,7 +20,9 @@ typedef enum {false = 0, true = 1} bool;
 #define NULL ((void*)0)
 #endif
 
-
+//区分取锁时的判断参数
+#define KERNEL true
+#define USER false
 
 // OS 全局变量
 
