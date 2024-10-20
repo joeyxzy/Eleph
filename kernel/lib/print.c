@@ -108,10 +108,9 @@ void printf(const char *fmt, ...)
 
 void panic(const char *s)
 {
-  printf("panic: ");
-  printf(s);
-  printf("\n");
+  printf("panic: %s\n", s);
   panicked = 1; // 设置全局变量，令其它cpu也无法使用
+  while(1);
 }
 
 //断言函数
