@@ -38,7 +38,7 @@ void pop_off(void)
 // 中断应当是关闭的
 bool spinlock_holding(spinlock_t *lk)
 {
-  return lk->locked && lk->cpuid == mycpuid();
+  return (lk->locked && lk->cpuid == mycpuid());
   //看看这个自旋锁锁上没有同时还要是被这个cpu锁上的
   //如果是的话，就说明这个cpu持有这个自旋锁
   //那么就要返回true，相当于发生了错误
@@ -58,6 +58,7 @@ void spinlock_acquire(spinlock_t *lk)
   push_off();
   if(spinlock_holding(lk))
   {
+    printf("locked:%d cpuid:%d real cpu:%d\n",lk->locked,lk->cpuid,mycpuid());
     panic("acquire");
   }
   while(__sync_lock_test_and_set(&lk->locked, 1) != 0);
@@ -65,7 +66,7 @@ void spinlock_acquire(spinlock_t *lk)
   __sync_synchronize();
   //给编译器设置一个内存屏障，保证上面的操作不会被重排
   lk->cpuid = mycpuid();
-} 
+}
 
 // 释放自旋锁
 void spinlock_release(spinlock_t *lk)
@@ -74,7 +75,7 @@ void spinlock_release(spinlock_t *lk)
   {
     panic("release");
   }
-  lk->cpuid = 0;
+  lk->cpuid = -1;
   __sync_synchronize();
   lk->locked = 0;
   pop_off();
