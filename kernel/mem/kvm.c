@@ -50,8 +50,8 @@ void vm_mappages(pgtbl_t pgtbl, uint64 va, uint64 pa, uint64 len, int perm)
     {
         if((pte=vm_getpte(pgtbl,now,true))==0)
             panic("vm_mappgaes:getpte");
-        if((*pte)&PTE_V)
-            panic("vm_mappgaes:remap");
+        /*if((*pte)&PTE_V)
+            panic("vm_mappgaes:remap");*/
         *pte=PA_TO_PTE(pa)|PTE_V|perm;
         if(now==end)
             break;
@@ -71,9 +71,9 @@ void vm_unmappages(pgtbl_t pgtbl, uint64 va, uint64 len, bool freeit)
     while(1)
     {
         if((pte=vm_getpte(pgtbl,now,false))==0)
-            panic("vm_mappgaes:getpte");
-        if((*pte)&PTE_V)
-            panic("vm_mappgaes:not mapped");
+            panic("vm_unmappgaes:getpte");
+        if(!(*pte)&PTE_V)
+            panic("vm_unmappgaes:not mapped");
         if(freeit)
             pmem_free(PTE_TO_PA(*pte),USER);
         *pte=0;
@@ -88,15 +88,17 @@ void vm_unmappages(pgtbl_t pgtbl, uint64 va, uint64 len, bool freeit)
 // 相当于填充kernel_pgtbl
 void kvm_init()
 {
+    printf("memset start\n");
+    kernel_pgtbl=pmem_alloc(KERNEL);
     memset(kernel_pgtbl,0,PGSIZE);
-
+    printf("memset_end\n");
     vm_mappages(kernel_pgtbl,UART_BASE,UART_BASE,PGSIZE,PTE_R|PTE_W);
-
+    printf("memset over\n");
     vm_mappages(kernel_pgtbl,PLIC_BASE,PLIC_BASE,0x400000,PTE_R|PTE_W);
 
     vm_mappages(kernel_pgtbl,CLINT_BASE,CLINT_BASE,0x10000,PTE_R|PTE_W);
 
-    vm_mappages(kernel_pgtbl,KERNEL_BASE,KERNEL_BASE,(uint64)KERNEL_DATA-KERNEL_BASE,PTE_R|PTE_W);
+    vm_mappages(kernel_pgtbl,KERNEL_BASE,KERNEL_BASE,(uint64)KERNEL_DATA-KERNEL_BASE,PTE_R|PTE_X);
 
     vm_mappages(kernel_pgtbl,(uint64)KERNEL_DATA,(uint64)KERNEL_DATA,(uint64)ALLOC_BEGIN-(uint64)KERNEL_DATA,PTE_R|PTE_W);
 
@@ -147,4 +149,9 @@ void vm_print(pgtbl_t pgtbl)
             }
         }
     }
+}
+
+void kernel_test_print()
+{
+    vm_print(kernel_pgtbl);
 }
