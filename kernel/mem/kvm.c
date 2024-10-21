@@ -50,8 +50,11 @@ void vm_mappages(pgtbl_t pgtbl, uint64 va, uint64 pa, uint64 len, int perm)
     {
         if((pte=vm_getpte(pgtbl,now,true))==0)
             panic("vm_mappgaes:getpte");
-        /*if((*pte)&PTE_V)
-            panic("vm_mappgaes:remap");*/
+        if((*pte)&PTE_V&&pa!=PTE_TO_PA(*pte))
+        //更宽松的remap检查，允许修改权限位，但是不允许修改物理页号
+        {
+            panic("vm_mappgaes:remap");
+        }
         *pte=PA_TO_PTE(pa)|PTE_V|perm;
         if(now==end)
             break;
@@ -88,20 +91,19 @@ void vm_unmappages(pgtbl_t pgtbl, uint64 va, uint64 len, bool freeit)
 // 相当于填充kernel_pgtbl
 void kvm_init()
 {
-    printf("memset start\n");
     kernel_pgtbl=pmem_alloc(KERNEL);
     memset(kernel_pgtbl,0,PGSIZE);
-    printf("memset_end\n");
+
     vm_mappages(kernel_pgtbl,UART_BASE,UART_BASE,PGSIZE,PTE_R|PTE_W);
-    printf("memset over\n");
+
     vm_mappages(kernel_pgtbl,PLIC_BASE,PLIC_BASE,0x400000,PTE_R|PTE_W);
 
     vm_mappages(kernel_pgtbl,CLINT_BASE,CLINT_BASE,0x10000,PTE_R|PTE_W);
 
     vm_mappages(kernel_pgtbl,KERNEL_BASE,KERNEL_BASE,(uint64)KERNEL_DATA-KERNEL_BASE,PTE_R|PTE_X);
-
+    //这段区域放的是内核代码，所以要给它一个x位的权限，允许执行，但是不给w权限，防止内核代码被修改
     vm_mappages(kernel_pgtbl,(uint64)KERNEL_DATA,(uint64)KERNEL_DATA,(uint64)ALLOC_BEGIN-(uint64)KERNEL_DATA,PTE_R|PTE_W);
-
+    //这段区域放的是数据段和bss段
     vm_mappages(kernel_pgtbl,(uint64)ALLOC_BEGIN,(uint64)ALLOC_BEGIN,(uint64)ALLOC_END-(uint64)ALLOC_BEGIN,PTE_R|PTE_W);
 
 }
@@ -151,7 +153,7 @@ void vm_print(pgtbl_t pgtbl)
     }
 }
 
-void kernel_test_print()
+void kvm_print()
 {
     vm_print(kernel_pgtbl);
 }
