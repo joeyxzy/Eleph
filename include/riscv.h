@@ -163,11 +163,6 @@ static inline void w_mtvec(uint64 x)
   asm volatile("csrw mtvec, %0" : : "r" (x));
 }
 
-// use riscv's sv39 page table scheme.
-#define SATP_SV39 (8L << 60)
-
-#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64)pagetable) >> 12))
-
 // supervisor address translation and protection;
 // holds the address of the page table.
 static inline void w_satp(uint64 x)
