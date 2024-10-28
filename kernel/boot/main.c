@@ -26,6 +26,8 @@ int main()
         printf("Eleph kernel is booting\n");
         printf("\n");
         trap_kernel_init();
+        while(1);
     }
-    while (1);    
+    //while (1);    
+    return 0;
 }
