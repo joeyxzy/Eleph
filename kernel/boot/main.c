@@ -4,6 +4,7 @@
 #include "proc/cpu.h"
 #include "mem/pmem.h"
 #include "mem/vmem.h"
+#include"trap/trap.h"
 
 
 volatile static int started = 0;
@@ -24,6 +25,7 @@ int main()
         printf("\n");
         printf("Eleph kernel is booting\n");
         printf("\n");
+        trap_kernel_init();
     }
     while (1);    
 }

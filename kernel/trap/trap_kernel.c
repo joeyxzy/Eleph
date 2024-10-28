@@ -7,7 +7,7 @@
 #include "memlayout.h"
 #include "riscv.h"
 
-// 中断信息
+/* // 中断信息
 static char* interrupt_info[16] = {
     "U-mode software interrupt",      // 0
     "S-mode software interrupt",      // 1
@@ -45,7 +45,7 @@ static char* exception_info[16] = {
     "Load page fault",                // 13
     "reserved-2",                     // 14
     "Store/AMO page fault",           // 15
-};
+}; */
 
 // in trap.S
 // 内核中断处理流程
@@ -54,25 +54,39 @@ extern void kernel_vector();
 // 初始化trap中全局共享的东西
 void trap_kernel_init()
 {
-
+    timer_create();
+    plic_init();
+    plic_inithart();
 }
 
 // 各个核心trap初始化
 void trap_kernel_inithart()
 {
-
+    w_sepc((uint64)kernel_vector);
 }
 
 // 外设中断处理 (基于PLIC)
 void external_interrupt_handler()
 {
-
+    int irq=plic_claim();
+    if(irq==UART_IRQ)
+        uart_intr();
+    else 
+        printf("unexpected interrupt irq=%d\n", irq);
+    if(irq)
+        plic_complete(irq);
 }
 
 // 时钟中断处理 (基于CLINT)
 void timer_interrupt_handler()
 {
-
+    if(mycpuid()==0)
+    {
+        timer_create();
+    }
+    //sip寄存器是记录待执行的Mmode或者Smode软件中断
+    //此处是清除Smode下记录的，smode存在第二位
+    w_sip(r_sip()&~2);
 }
 
 // 在kernel_vector()里面调用
@@ -82,7 +96,7 @@ void trap_kernel_handler()
     uint64 sepc = r_sepc();          // 记录了发生异常时的pc值
     uint64 sstatus = r_sstatus();    // 与特权模式和中断相关的状态信息
     uint64 scause = r_scause();      // 引发trap的原因
-    uint64 stval = r_stval();        // 发生trap时保存的附加信息(不同trap不一样)
+    //uint64 stval = r_stval();        // 发生trap时保存的附加信息(不同trap不一样)
 
     // 确认trap来自S-mode且此时trap处于关闭状态
     assert(sstatus & SSTATUS_SPP, "trap_kernel_handler: not from s-mode");
@@ -91,4 +105,22 @@ void trap_kernel_handler()
     int trap_id = scause & 0xf; 
 
     // 中断异常处理核心逻辑
+    if((scause&0x8000000000000000L)&&trap_id==9)
+    {
+        external_interrupt_handler();
+    }
+    else if(scause==0x8000000000000001L)
+    {
+        timer_interrupt_handler();
+        //这里对于时钟中断可能发生多级中断，所以寄存器可能已经被多级修改了
+        //这里很像dfs操作，调用完递归函数后，要恢复现场
+        w_sepc(sepc);
+        w_sstatus(sstatus);
+    }
+    else 
+    {
+        printf("scause %p\n", scause);
+        printf("sepc=%p stval=%p\n", r_sepc(), r_stval());
+        panic("kerneltrap");
+    }
 }

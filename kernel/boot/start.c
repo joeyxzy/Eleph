@@ -1,4 +1,5 @@
 #include "riscv.h"
+#include"dev/timer.h"
 
 __attribute__ ((aligned (16))) uint8 CPU_stack[4096 * NCPU];
 
@@ -25,7 +26,8 @@ start()
   w_medeleg(0xffff);
   w_mideleg(0xffff);
   w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
-
+  //初始化Mmode中断
+  timer_init();
   // keep each CPU's hartid in its tp register, for cpuid().
   int id = r_mhartid();
   w_tp(id);
