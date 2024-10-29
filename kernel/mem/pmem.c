@@ -41,13 +41,11 @@ void pmem_init(void)
 //释放一个范围的物理页，集体调用pmem_free
 void freerange(void* begin, void* end, bool in_kernel)
 {
-    char* p;int k=0;
+    char* p;
     p = (char*)PGROUNDUP((uint64)begin);
     for(; p + PGSIZE <= (char*)end; p += PGSIZE)
     {
         pmem_free((uint64)p, in_kernel);
-        if(!in_kernel)
-        printf("num:%d\n",k++);
     }
 }
 

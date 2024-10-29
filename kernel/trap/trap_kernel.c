@@ -56,13 +56,13 @@ void trap_kernel_init()
 {
     timer_create();
     plic_init();
-    plic_inithart();
 }
 
 // 各个核心trap初始化
 void trap_kernel_inithart()
 {
-    w_sepc((uint64)kernel_vector);
+    w_stvec((uint64)kernel_vector);
+    plic_inithart();
 }
 
 // 外设中断处理 (基于PLIC)
@@ -82,7 +82,7 @@ void timer_interrupt_handler()
 {
     if(mycpuid()==0)
     {
-        timer_create();
+        timer_update();
     }
     //sip寄存器是记录待执行的Mmode或者Smode软件中断
     //此处是清除Smode下记录的，smode存在第二位

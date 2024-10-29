@@ -27,10 +27,10 @@ void timer_init()
   // scratch[0..3] : 为 timervec 保存寄存器的空间
   // scratch[4] : CLINT MTIMECMP 寄存器的地址
   // scratch[5] : 所需的定时器中断间隔（周期）
-  uint64 *scratch = mscratch[32 * id];
+  uint64 *scratch = mscratch[id];
   //初始化每个hart的MTIMECMP值
-  scratch[4] = CLINT_MTIMECMP(id);
-  scratch[5] = interval;
+  mscratch[id][3] = CLINT_MTIMECMP(id);
+  mscratch[id][4] = interval;
   //scratch寄存器放的压根就不是数组，而是指针，真正的内容被放在mscratch0数组里面
   w_mscratch((uint64)scratch);
   // 设置M_Mode出现中断以后进行的中断处理程序地址
