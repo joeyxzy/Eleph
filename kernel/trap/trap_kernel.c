@@ -54,15 +54,19 @@ extern void kernel_vector();
 // 初始化trap中全局共享的东西
 void trap_kernel_init()
 {
-    timer_create();
+    assert(mycpuid()==0,"tki cpuid wrong!");
+    //printf("trap_krenel_init start!\n");
     plic_init();
+    plic_inithart();
+    timer_create();
+    //printf("trap_kernel_init end!\n");
 }
 
 // 各个核心trap初始化
 void trap_kernel_inithart()
 {
     w_stvec((uint64)kernel_vector);
-    plic_inithart();
+    
 }
 
 // 外设中断处理 (基于PLIC)
@@ -80,6 +84,7 @@ void external_interrupt_handler()
 // 时钟中断处理 (基于CLINT)
 void timer_interrupt_handler()
 {
+    //printf("CPU %d: di da!\n",mycpuid());
     if(mycpuid()==0)
     {
         timer_update();
@@ -93,6 +98,7 @@ void timer_interrupt_handler()
 // 内核态trap处理的核心逻辑
 void trap_kernel_handler()
 {
+    //printf("called\n");
     uint64 sepc = r_sepc();          // 记录了发生异常时的pc值
     uint64 sstatus = r_sstatus();    // 与特权模式和中断相关的状态信息
     uint64 scause = r_scause();      // 引发trap的原因
@@ -103,7 +109,7 @@ void trap_kernel_handler()
     assert(intr_get() == 0, "trap_kernel_handler: interreput enabled");
 
     int trap_id = scause & 0xf; 
-
+    //printf("cpuid:%d trapid:%d\n",mycpuid(),trap_id);
     // 中断异常处理核心逻辑
     if((scause&0x8000000000000000L)&&trap_id==9)
     {

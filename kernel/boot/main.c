@@ -4,7 +4,8 @@
 #include "proc/cpu.h"
 #include "mem/pmem.h"
 #include "mem/vmem.h"
-#include"trap/trap.h"
+#include "trap/trap.h"
+#include "dev/timer.h"
 
 
 volatile static int started = 0;
@@ -16,18 +17,24 @@ volatile static int over_1 = 0, over_2 = 0;
 int main()
 {
     int cpuid = r_tp();
-
     if(cpuid == 0) {
         print_init();
         pmem_init();
         kvm_init();
         kvm_inithart();
-        printf("\n");
-        printf("Eleph kernel is booting\n");
-        printf("\n");
+        printf("cpu %d is starting\n",mycpuid());
         trap_kernel_init();
-        while(1);
+        trap_kernel_inithart();
+        __sync_synchronize();
+        started=1;
     }
-    //while (1);    
-    return 0;
+    else{
+        while(started==0);
+        __sync_synchronize();
+        printf("cpu %d is starting\n",mycpuid());
+        kvm_inithart();
+        trap_kernel_inithart();
+    }   
+    intr_on();
+    while(1);
 }

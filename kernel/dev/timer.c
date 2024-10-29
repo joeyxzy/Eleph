@@ -3,6 +3,7 @@
 #include "dev/timer.h"
 #include "memlayout.h"
 #include "riscv.h"
+#include "proc/cpu.h"
 
 /*-------------------- 工作在M-mode --------------------*/
 
@@ -20,8 +21,7 @@ void timer_init()
   int id = r_mhartid();
 
   // 请求 CLINT 产生定时器中断。
-  int interval = 1000000; // 周期间隔，大约相当于 QEMU 中的 1/10 秒
-  *(uint64*)CLINT_MTIMECMP(id) = *(uint64*)CLINT_MTIME + interval;
+  *(uint64*)CLINT_MTIMECMP(id) = *(uint64*)CLINT_MTIME + INTERVAL;
 
   // 准备用于 timervec 的 scratch 区域
   // scratch[0..3] : 为 timervec 保存寄存器的空间
@@ -30,7 +30,7 @@ void timer_init()
   uint64 *scratch = mscratch[id];
   //初始化每个hart的MTIMECMP值
   mscratch[id][3] = CLINT_MTIMECMP(id);
-  mscratch[id][4] = interval;
+  mscratch[id][4] = INTERVAL;
   //scratch寄存器放的压根就不是数组，而是指针，真正的内容被放在mscratch0数组里面
   w_mscratch((uint64)scratch);
   // 设置M_Mode出现中断以后进行的中断处理程序地址
@@ -60,6 +60,7 @@ void timer_update()
 {
   spinlock_acquire(&sys_timer.lk);
   sys_timer.ticks++;
+  //printf("ticks = %d\n",sys_timer.ticks);
   spinlock_release(&sys_timer.lk);
 }
 
