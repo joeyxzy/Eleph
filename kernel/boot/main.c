@@ -22,7 +22,7 @@ int main()
         pmem_init();
         kvm_init();
         kvm_inithart();
-        printf("cpu %d is starting\n",mycpuid());
+        printf("\ncpu %d is starting\n",mycpuid());
         trap_kernel_init();
         trap_kernel_inithart();
         __sync_synchronize();
@@ -34,7 +34,8 @@ int main()
         printf("cpu %d is starting\n",mycpuid());
         kvm_inithart();
         trap_kernel_inithart();
-    }   
+    }
+    //先把stvec写好，才能intr_on，不然会因为没有找到进入Smode的入口而卡住   
     intr_on();
     while(1);
 }

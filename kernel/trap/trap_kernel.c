@@ -65,8 +65,9 @@ void trap_kernel_init()
 // 各个核心trap初始化
 void trap_kernel_inithart()
 {
+    //将smode下的中断入口写在寄存器里
+    //printf("have not writen!\n");
     w_stvec((uint64)kernel_vector);
-    
 }
 
 // 外设中断处理 (基于PLIC)

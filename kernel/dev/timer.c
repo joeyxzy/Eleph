@@ -20,7 +20,8 @@ void timer_init()
     // 每个 CPU 都有一个单独的定时器中断源
   int id = r_mhartid();
 
-  // 请求 CLINT 产生定时器中断。
+  // 通过CLINT_MTIMECMP(id)传入cpuid得知MTIMECMP寄存器的地址
+  //然后初始化它
   *(uint64*)CLINT_MTIMECMP(id) = *(uint64*)CLINT_MTIME + INTERVAL;
 
   // 准备用于 timervec 的 scratch 区域
@@ -35,6 +36,7 @@ void timer_init()
   w_mscratch((uint64)scratch);
   // 设置M_Mode出现中断以后进行的中断处理程序地址
   //这个在对应kernelvec.S这个处理中断的汇编函数
+  //将处理异常的入口写入机器模式下的tvec寄存器
   w_mtvec((uint64)timer_vector);
   // 允许 Machine Mode 中断
   w_mstatus(r_mstatus() | MSTATUS_MIE);
