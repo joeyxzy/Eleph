@@ -93,7 +93,7 @@ void vm_unmappages(pgtbl_t pgtbl, uint64 va, uint64 len, bool freeit)
 void kp_map_stacks()
 {
     //目前只有一个proczero，所以暂时只需要映射这一个进程的kstack即可
-    char* va=KSTACK(0);
+    uint64 va=KSTACK(0);
     char* pa=pmem_alloc(KERNEL);
     vm_mappages(kernel_pgtbl,(uint64)va,(uint64)pa,PGSIZE,PTE_R|PTE_W);
 }
@@ -110,16 +110,16 @@ void kvm_init()
     vm_mappages(kernel_pgtbl,PLIC_BASE,PLIC_BASE,0x400000,PTE_R|PTE_W);
 
     vm_mappages(kernel_pgtbl,CLINT_BASE,CLINT_BASE,0x10000,PTE_R|PTE_W);
-
-    vm_mappages(kernel_pgtbl,KERNEL_BASE,KERNEL_BASE,(uint64)KERNEL_DATA-KERNEL_BASE,PTE_R|PTE_X);
     //这段区域放的是内核代码，所以要给它一个x位的权限，允许执行，但是不给w权限，防止内核代码被修改
+    vm_mappages(kernel_pgtbl,KERNEL_BASE,KERNEL_BASE,(uint64)KERNEL_DATA-KERNEL_BASE,PTE_R|PTE_X);
+
     vm_mappages(kernel_pgtbl,(uint64)KERNEL_DATA,(uint64)KERNEL_DATA,(uint64)ALLOC_BEGIN-(uint64)KERNEL_DATA,PTE_R|PTE_W);
     //这段区域放的是数据段和bss段
     vm_mappages(kernel_pgtbl,(uint64)ALLOC_BEGIN,(uint64)ALLOC_BEGIN,(uint64)ALLOC_END-(uint64)ALLOC_BEGIN,PTE_R|PTE_W);
     //trampoline的物理页在内核初始化的时候就分配好
-    vm_mappages(kernel_pgtbl,TRAMPOLINE,(uint64)trampoline,PGSIZE,PTE_R|PTE_X);
+    //vm_mappages(kernel_pgtbl,TRAMPOLINE,(uint64)trampoline,PGSIZE,PTE_R|PTE_X);
     //映射内核栈
-    kp_map_stacks();
+    //kp_map_stacks();
 }
 
 // 使用新的页表，刷新TLB

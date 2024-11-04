@@ -23,9 +23,10 @@ static proc_t proczero;
 // 完成了trapframe 和 trampoline 的映射
 pgtbl_t proc_pgtbl_init(uint64 trapframe)
 {
-    pgtbl_t* proc_pgtbl=pmem_alloc(USER);
+    pgtbl_t proc_pgtbl=pmem_alloc(USER);
     vm_mappages(proc_pgtbl,TRAMPOLINE,(uint64)trampoline,PGSIZE,PTE_R|PTE_X);
-    vm_mappages(proc_pgtbl,TRAPFRAME,trapframe,PTE_R|PTE_W);
+    vm_mappages(proc_pgtbl,TRAPFRAME,trapframe,PGSIZE,PTE_R|PTE_W);
+    return proc_pgtbl;
 }
 
 /*
@@ -43,23 +44,24 @@ pgtbl_t proc_pgtbl_init(uint64 trapframe)
 */
 void proc_make_fisrt()
 {
-    uint64 page;
-    proczero.tf=(trapframe_t*)pmem_alloc();
+    //uint64 page;
+    proczero.tf=(trapframe_t*)pmem_alloc(USER);
     // pid 设置
     proczero.pid=0;
 
     // pagetable 初始化
-    proczero.pgtbl=proc_pgtbl_init(proczero.tf);
+    proczero.pgtbl=proc_pgtbl_init((uint64)proczero.tf);
 
     // ustack 映射 + 设置 ustack_pages 
-    vm_mappages(proczero,USTACK_BOTTOM,(uint64)pmem_alloc(USER),RTE_R|RTE_W);
+    vm_mappages(proczero.pgtbl,USTACK_BOTTOM,(uint64)pmem_alloc(USER),PGSIZE,PTE_R|PTE_W);
     proczero.ustack_pages=1;
 
     // data + code 映射
     assert(initcode_len <= PGSIZE, "proc_make_first: initcode too big\n");
-    uint64* addr;
-    vm_mappages(proczero,DATA_CODE_START,addr=(uint64)pmem_alloc(USER),RTE_U|RTE_R|RTE_W|RTE_X);
-    memmove((void*)addr,initcode,initcode_len);
+    char* addr;
+    addr=pmem_alloc(USER);
+    vm_mappages(proczero.pgtbl,DATA_CODE_START,(uint64)addr,PGSIZE,PTE_U|PTE_R|PTE_W|PTE_X);
+    memmove(addr,initcode,initcode_len);
 
     // 设置 heap_top
     // 此时堆为空的，所以堆底就是堆顶
@@ -74,6 +76,6 @@ void proc_make_fisrt()
     proczero.ctx.ra=(uint64)trap_user_return;
     // 上下文切换
     cpu_t* cpu=mycpu();
-    cpu->proc=proczero;
+    cpu->proc=&proczero;
     swtch(&cpu->ctx,&proczero.ctx);
 }

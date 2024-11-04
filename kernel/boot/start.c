@@ -8,7 +8,9 @@ void main();
 void
 start()
 {
-  //寄存器的读写操作
+  //MSTATUS像一个指南，我们可以修改指南，但是修改了指南以后并不代表会马上执行
+  //而是在mret以后，会根据指南来做出改变
+  //此处是将MPP字段设置为Smode，提前设定好mret后的模式
   unsigned long x = r_mstatus();
   x &= ~MSTATUS_MPP_MASK;
   x |= MSTATUS_MPP_S;
