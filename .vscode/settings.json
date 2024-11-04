@@ -8,6 +8,7 @@
         "print.h": "c",
         "riscv.h": "c",
         "str.h": "c",
-        "time.h": "c"
+        "time.h": "c",
+        "vmem.h": "c"
     }
 }

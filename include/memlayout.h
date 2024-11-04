@@ -41,6 +41,18 @@
 // 定义用户态和内核态切换用到的数据所在的虚拟地址(仅用户页表使用)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 
+// 定义用户栈的栈底的虚拟地址
+#define USTACK_BOTTOM TRAPFRAME
+
+//定义堆区在用户页表中的堆底的虚拟地址
+//code + data (1 page)
+//empty space (1 page) 
+//最下面的是这两页，虚拟地址从0开始空一页，在放一页的代码和数据段
+#define  HEAP_BOTTOM (2*PGSIZE)
+
+//定义代码段和数据段开始的虚拟地址
+#define DATA_CODE_START PGSIZE
+
 // 定义各个进程的内核栈的虚拟地址(间隔分布)
 #define KSTACK(id) (TRAPFRAME - ((id) + 1) * 2 * PGSIZE)
 

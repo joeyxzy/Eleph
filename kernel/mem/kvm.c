@@ -8,6 +8,8 @@
 #include "memlayout.h"
 
 static pgtbl_t kernel_pgtbl; // 内核页表
+// in trampoline.S
+extern char trampoline[];
 
 
 // 根据pagetable,找到va对应的pte
@@ -87,7 +89,16 @@ void vm_unmappages(pgtbl_t pgtbl, uint64 va, uint64 len, bool freeit)
     return ;
 }
 
-// 完成 UART CLINT PLIC 内核代码区 内核数据区 可分配区域 的映射
+//为内核页表映射内核栈
+void kp_map_stacks()
+{
+    //目前只有一个proczero，所以暂时只需要映射这一个进程的kstack即可
+    char* va=KSTACK(0);
+    char* pa=pmem_alloc(KERNEL);
+    vm_mappages(kernel_pgtbl,(uint64)va,(uint64)pa,PGSIZE,PTE_R|PTE_W);
+}
+
+// 完成 UART CLINT PLIC 内核代码区 内核数据区 可分配区域 trampoline 内核栈的映射
 // 相当于填充kernel_pgtbl
 void kvm_init()
 {
@@ -105,7 +116,10 @@ void kvm_init()
     vm_mappages(kernel_pgtbl,(uint64)KERNEL_DATA,(uint64)KERNEL_DATA,(uint64)ALLOC_BEGIN-(uint64)KERNEL_DATA,PTE_R|PTE_W);
     //这段区域放的是数据段和bss段
     vm_mappages(kernel_pgtbl,(uint64)ALLOC_BEGIN,(uint64)ALLOC_BEGIN,(uint64)ALLOC_END-(uint64)ALLOC_BEGIN,PTE_R|PTE_W);
-
+    //trampoline的物理页在内核初始化的时候就分配好
+    vm_mappages(kernel_pgtbl,TRAMPOLINE,(uint64)trampoline,PGSIZE,PTE_R|PTE_X);
+    //映射内核栈
+    kp_map_stacks();
 }
 
 // 使用新的页表，刷新TLB

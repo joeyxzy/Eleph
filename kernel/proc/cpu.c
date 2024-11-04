@@ -18,7 +18,10 @@ int mycpuid(void)
   return id;
 }
 
+//获取当前cpu持有的进程
 proc_t* myproc(void)
 {
-    
+    int id=mycpuid();
+    cpu_t *c=&cpus[id];
+    return c->proc;
 }
