@@ -53,7 +53,7 @@ void proc_make_fisrt()
     proczero.pgtbl=proc_pgtbl_init((uint64)proczero.tf);
 
     // ustack 映射 + 设置 ustack_pages 
-    vm_mappages(proczero.pgtbl,USTACK_BOTTOM,(uint64)pmem_alloc(USER),PGSIZE,PTE_R|PTE_W);
+    vm_mappages(proczero.pgtbl,USTACK_BOTTOM-PGSIZE,(uint64)pmem_alloc(USER),PGSIZE,PTE_R|PTE_W|PTE_U);
     proczero.ustack_pages=1;
 
     // data + code 映射
@@ -77,5 +77,5 @@ void proc_make_fisrt()
     // 上下文切换
     cpu_t* cpu=mycpu();
     cpu->proc=&proczero;
-    swtch(&cpu->ctx,&proczero.ctx);
+    swtch(&(cpu->ctx),&(proczero.ctx));
 }

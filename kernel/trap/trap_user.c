@@ -26,20 +26,40 @@ void trap_user_handler()
     uint64 scause = r_scause();      // 引发trap的原因
     //uint64 stval = r_stval();        // 发生trap时保存的附加信息(不同trap不一样)
     proc_t* p = myproc();
-
     // 确认trap来自U-mode
     assert((sstatus & SSTATUS_SPP) == 0, "trap_user_handler: not from u-mode");
+
+    w_stvec((uint64)kernel_vector);
+
     //将此时用户态的pc记录在trapframe中
     p->tf->epc = sepc;
-    if(scause==8)
+    int trap_id = scause & 0xf; 
+    if (scause&0x8000000000000000L)
     {
-        printf("get a syscall from proc %d\n", myproc()->pid);
+        if(trap_id==9)
+        {
+            external_interrupt_handler();
+        }
+        else if(trap_id==1)
+        {
+            timer_interrupt_handler();
+        }
+        else 
+        {
+            printf("Unknown trap id %x,description:%s\n", trap_id,interrupt_info[trap_id]);
+        }
     }
-    else
+    else 
     {
-        printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-        printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+        if(trap_id == 8)
+        {
+            p->tf->epc += 4;
+            intr_on();
+            printf("get a syscall from proc %d\n", myproc()->pid);
+        }
+        else printf("Unknown trap id %x,description:%s\n", trap_id,exception_info[trap_id]);
     }
+    // 返回用户态
     trap_user_return();
 }
 
@@ -57,7 +77,7 @@ void trap_user_return()
     //epc在之前就已经初始化好了
     p->tf->kernel_satp = r_satp();         
     p->tf->kernel_sp = p->kstack + PGSIZE; // 指向内核栈顶
-    p->tf->kernel_trap = (uint64)user_vector;
+    p->tf->kernel_trap = (uint64)trap_user_handler;//
     p->tf->kernel_hartid = r_tp();   
 
     unsigned long x = r_sstatus();

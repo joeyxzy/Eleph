@@ -117,9 +117,9 @@ void kvm_init()
     //这段区域放的是数据段和bss段
     vm_mappages(kernel_pgtbl,(uint64)ALLOC_BEGIN,(uint64)ALLOC_BEGIN,(uint64)ALLOC_END-(uint64)ALLOC_BEGIN,PTE_R|PTE_W);
     //trampoline的物理页在内核初始化的时候就分配好
-    //vm_mappages(kernel_pgtbl,TRAMPOLINE,(uint64)trampoline,PGSIZE,PTE_R|PTE_X);
+    vm_mappages(kernel_pgtbl,TRAMPOLINE,(uint64)trampoline,PGSIZE,PTE_R|PTE_X);
     //映射内核栈
-    //kp_map_stacks();
+    kp_map_stacks();
 }
 
 // 使用新的页表，刷新TLB
