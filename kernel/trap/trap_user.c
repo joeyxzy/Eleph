@@ -72,6 +72,7 @@ void trap_user_return()
     //在修改trap_vector地址之前关闭中断
     intr_off();
     //放入uservec的虚拟地址，因为此时satp写入了内核页表
+    //在用户态发生的trap就会跳转到stvec这个寄存器指的地址，即user_vector这段处理用户trap的汇编代码
     w_stvec(TRAMPOLINE+(user_vector-trampoline));
     //在trapframe中保存值，便于下一次进程由用户空间切换到内核空间时使用
     //epc在之前就已经初始化好了
