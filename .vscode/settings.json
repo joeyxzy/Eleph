@@ -9,6 +9,7 @@
         "riscv.h": "c",
         "str.h": "c",
         "time.h": "c",
-        "vmem.h": "c"
+        "vmem.h": "c",
+        "trap.h": "c"
     }
 }

@@ -67,6 +67,8 @@ void proc_make_fisrt()
     // 此时堆为空的，所以堆底就是堆顶
     proczero.heap_top=HEAP_BOTTOM;
 
+    // 设置 mmap_region_t
+
     // tf字段设置
     proczero.tf->epc=DATA_CODE_START;
     proczero.tf->sp=USTACK_BOTTOM;

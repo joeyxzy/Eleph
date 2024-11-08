@@ -67,9 +67,8 @@ typedef uint64* pgtbl_t;
 // 获取低10bit的flag信息
 #define PTE_FLAGS(pte) ((pte) & 0x3FF)
 
-// 定义一个相当大的VA, 规定所有VA不得大于它
-// VA_MAX 移动到memlayout.h
 
+/*---------------------- in kvm.c -------------------------*/
 void   vm_print(pgtbl_t pgtbl);
 pte_t* vm_getpte(pgtbl_t pgtbl, uint64 va, bool alloc);
 void   vm_mappages(pgtbl_t pgtbl, uint64 va, uint64 pa, uint64 len, int perm);
@@ -80,5 +79,22 @@ void   kvm_inithart();
 
 //打印内核页表的额外调试函数
 void  kvm_print();
+
+/*------------------------ in uvm.c -----------------------*/
+
+void   uvm_show_mmaplist(mmap_region_t* mmap);
+
+void   uvm_destroy_pgtbl(pgtbl_t pgtbl, uint32 level);
+void   uvm_copy_pgtbl(pgtbl_t old, pgtbl_t new, uint64 heap_top, uint32 ustack_pages, mmap_region_t* mmap);
+
+void   uvm_mmap(uint64 begin, uint32 npages, int perm);
+void   uvm_munmap(uint64 begin, uint32 npages);
+
+uint64 uvm_heap_grow(pgtbl_t pgtbl, uint64 heap_top, uint32 len);
+uint64 uvm_heap_ungrow(pgtbl_t pgtbl, uint64 heap_top, uint32 len);
+
+void   uvm_copyin(pgtbl_t pgtbl, uint64 dst, uint64 src, uint32 len);
+void   uvm_copyout(pgtbl_t pgtbl, uint64 dst, uint64 src, uint32 len);
+void   uvm_copyin_str(pgtbl_t pgtbl, uint64 dst, uint64 src, uint32 maxlen);
 
 #endif

@@ -3,6 +3,7 @@
 #include "lib/str.h"
 #include "mem/pmem.h"
 #include "mem/vmem.h"
+#include "mem/mmap.h"
 #include "proc/proc.h"
 #include "trap/trap.h"
 
@@ -16,25 +17,27 @@ int main()
         
         print_init();
         printf("cpu %d is booting!\n", cpuid);
-
         pmem_init();
         kvm_init();
         kvm_inithart();
         trap_kernel_init();
-        trap_kernel_inithart();
+        trap_kernel_inithart();        
+        mmap_init();
 
-        proc_make_fisrt();
-        
+        proc_make_first();
+
         __sync_synchronize();
-        // started = 1;
+        started = 1;
 
     } else {
 
         while(started == 0);
         __sync_synchronize();
+        
         printf("cpu %d is booting!\n", cpuid);
         kvm_inithart();
         trap_kernel_inithart();
     }
-    while (1);    
+ 
+    while (1);
 }
