@@ -8,6 +8,7 @@ int main()
     syscall(SYS_copyout, L);
     syscall(SYS_copyin, L, 5);
     syscall(SYS_copyinstr, s);
+    syscall(SYS_brk, 0);
     while(1);
     return 0;
 }

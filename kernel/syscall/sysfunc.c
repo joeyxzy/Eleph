@@ -12,7 +12,28 @@
 // 成功返回新的堆顶 失败返回-1
 uint64 sys_brk()
 {
-    return 0;
+    uint64 new_heap_top;
+    uint64 old_heap_top;
+    arg_uint64(0,&new_heap_top);
+    proc_t* p=myproc();
+    old_heap_top=p->heap_top;
+    if(new_heap_top==0||new_heap_top==old_heap_top)
+    {
+        printf("look: heap_top = %p\n", old_heap_top);
+        vm_print(p->pgtbl);
+        printf("\n");
+        return old_heap_top;
+    }
+    else if(new_heap_top>old_heap_top)
+    {
+        p->heap_top=uvm_heap_grow(p->pgtbl,old_heap_top,new_heap_top-old_heap_top);
+        return p->heap_top;
+    }
+    else 
+    {
+        p->heap_top=uvm_heap_ungrow(p->pgtbl,old_heap_top,old_heap_top-new_heap_top);
+        return p->heap_top;
+    }
 }
 
 // 内存映射

@@ -107,7 +107,7 @@ void uvm_munmap(uint64 begin, uint32 npages)
 
 }
 
-// 用户堆空间增加, 返回新的堆顶地址 (注意栈顶最大值限制)
+// 用户堆空间增加, 返回新的堆顶地址 (注意堆顶最大值限制)
 // 在这里无需修正 p->heap_top
 uint64 uvm_heap_grow(pgtbl_t pgtbl, uint64 heap_top, uint32 len)
 {
