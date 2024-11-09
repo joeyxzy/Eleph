@@ -7,7 +7,7 @@
 #include "memlayout.h"
 
 // 连续虚拟空间的复制(在uvm_copy_pgtbl中使用)
-static void copy_range(pgtbl_t old, pgtbl_t new, uint64 begin, uint64 end)
+/* static void copy_range(pgtbl_t old, pgtbl_t new, uint64 begin, uint64 end)
 {
     uint64 va, pa, page;
     int flags;
@@ -18,7 +18,7 @@ static void copy_range(pgtbl_t old, pgtbl_t new, uint64 begin, uint64 end)
         pte = vm_getpte(old, va, false);
         assert(pte != NULL, "uvm_copy_pgtbl: pte == NULL");
         assert((*pte) & PTE_V, "uvm_copy_pgtbl: pte not valid");
-        assert(PTE_CHECK(*pte), "uvm_copy_pgtbl: pte check fail");
+        //assert(PTE_CHECK(*pte), "uvm_copy_pgtbl: pte check fail");
         
         pa = (uint64)PTE_TO_PA(*pte);
         flags = (int)PTE_FLAGS(*pte);
@@ -27,12 +27,12 @@ static void copy_range(pgtbl_t old, pgtbl_t new, uint64 begin, uint64 end)
         memmove((char*)page, (const char*)pa, PGSIZE);
         vm_mappages(new, va, page, PGSIZE, flags);
     }
-}
+} */
 
 // 两个 mmap_region 区域合并
 // 保留一个 释放一个 不操作 next 指针
 // 在uvm_munmap里使用
-static void mmap_merge(mmap_region_t* mmap_1, mmap_region_t* mmap_2, bool keep_mmap_1)
+/* static void mmap_merge(mmap_region_t* mmap_1, mmap_region_t* mmap_2, bool keep_mmap_1)
 {
     // 确保有效和紧临
     assert(mmap_1 != NULL && mmap_2 != NULL, "mmap_merge: NULL");
@@ -48,7 +48,7 @@ static void mmap_merge(mmap_region_t* mmap_1, mmap_region_t* mmap_2, bool keep_m
         mmap_region_free(mmap_1);
     }
 }
-
+ */
 // 打印以 mmap 为首的 mmap 链
 // for debug
 void uvm_show_mmaplist(mmap_region_t* mmap)
@@ -131,13 +131,44 @@ uint64 uvm_heap_ungrow(pgtbl_t pgtbl, uint64 heap_top, uint32 len)
 // 注意: src dst 不一定是 page-aligned
 void uvm_copyin(pgtbl_t pgtbl, uint64 dst, uint64 src, uint32 len)
 {
-
+    uint64 n,va0,pa0;
+    while(len>0)
+    {
+        va0=PGROUNDDOWN(src);
+        pte_t* pte=vm_getpte(pgtbl,va0,false);
+        pa0=PTE_TO_PA(*pte);
+        if(pa0==0)
+          panic("not valid pte in uvm_copyin");
+        n=PGSIZE-(src-va0);
+        if(n>len)
+          n=len;
+        memmove((void*)dst,(void*)(pa0+(src-va0)),n);
+        len-=n;
+        src+=va0+PGSIZE;
+        dst+=n;
+    }
 }
 
 // 内核态地址空间[src, src+len） 拷贝至 用户态地址空间[dst, dst+len)
 void uvm_copyout(pgtbl_t pgtbl, uint64 dst, uint64 src, uint32 len)
 {
+    uint64 n, va0, pa0;
+    while(len > 0)
+  {
+    va0 = PGROUNDDOWN(dst);
+    pte_t* pte = vm_getpte(pgtbl,va0,false);
+    pa0=PTE_TO_PA(*pte);
+    if(pa0 == 0)
+      panic("not valid pte in ucm_copyout");
+    n = PGSIZE - (dst - va0);
+    if(n > len)
+      n = len;
+    memmove((void *)(pa0 + (dst - va0)), (void*)src, n);
 
+    len -= n;
+    src += n;
+    dst = va0 + PGSIZE;
+  }
 }
 
 // 用户态字符串拷贝到内核态
@@ -145,5 +176,39 @@ void uvm_copyout(pgtbl_t pgtbl, uint64 dst, uint64 src, uint32 len)
 // 注意: src dst 不一定是 page-aligned
 void uvm_copyin_str(pgtbl_t pgtbl, uint64 dst, uint64 src, uint32 maxlen)
 {
+  uint64 n, va0, pa0;
+  int got_null = 0;
 
+  while(got_null == 0 && maxlen > 0){
+    va0 = PGROUNDDOWN(src);
+    pte_t* pte = vm_getpte(pgtbl, va0,false);
+    pa0=PTE_TO_PA(*pte);
+    if(pa0 == 0)
+      panic("not valid pte in uvm_copyin_str");
+    n = PGSIZE - (src - va0);
+    if(n > maxlen)
+      n = maxlen;
+
+    char *p = (char *) (pa0 + (src - va0));
+    while(n > 0){
+      if(*p == '\0'){
+        *(char*)dst = '\0';
+        got_null = 1;
+        break;
+      } else {
+        *(char*)dst = *(char*)p;
+      }
+      --n;
+      --maxlen;
+      p++;
+      dst++;
+    }
+
+    src = va0 + PGSIZE;
+  }
+  if(got_null){
+    return;
+  } else {
+    panic("uvm_copyin_str:out of maxlen");
+  }
 }

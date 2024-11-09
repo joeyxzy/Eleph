@@ -2,6 +2,7 @@
 #define __PROC_H__
 
 #include "common.h"
+#include "mem/mmap.h"
 
 // 页表类型定义
 typedef uint64* pgtbl_t;
@@ -82,7 +83,7 @@ typedef struct proc {
 } proc_t;
 
 
-void     proc_make_fisrt();                      // 创建第一个进程并切换到它执行
+void     proc_make_first();                      // 创建第一个进程并切换到它执行
 pgtbl_t  proc_pgtbl_init(uint64 trapframe);      // 进程页表的初始化和基本映射
 
 #endif

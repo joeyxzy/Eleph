@@ -3,6 +3,7 @@
 #include "proc/cpu.h"
 #include "mem/vmem.h"
 #include "memlayout.h"
+#include "syscall/syscall.h"
 #include "riscv.h"
 
 // in trampoline.S
@@ -55,7 +56,7 @@ void trap_user_handler()
         {
             p->tf->epc += 4;
             intr_on();
-            printf("get a syscall from proc %d\n", myproc()->pid);
+            syscall();
         }
         else printf("Unknown trap id %x,description:%s\n", trap_id,exception_info[trap_id]);
     }

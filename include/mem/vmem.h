@@ -2,6 +2,7 @@
 #define __VMEM_H__
 
 #include "common.h"
+#include "mmap.h"
 
 /*
     我们使用RISC-V体系结构中的SV39作为虚拟内存的设计规范

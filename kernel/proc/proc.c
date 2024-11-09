@@ -42,7 +42,7 @@ pgtbl_t proc_pgtbl_init(uint64 trapframe)
     code + data (1 page)
     empty space (1 page) 最低的4096字节 不分配物理页，同时不可访问
 */
-void proc_make_fisrt()
+void proc_make_first()
 {
     //uint64 page;
     proczero.tf=(trapframe_t*)pmem_alloc(USER);

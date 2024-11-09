@@ -29,7 +29,7 @@ void mmap_init()
 // 注意: list_head 保留, 不会被申请出去
 mmap_region_t* mmap_region_alloc()
 {
-
+    return &list_mmap_region_node->mmap;
 }
 
 // 向仓库归还一个 mmap_region_t

@@ -6,6 +6,9 @@
 #include "syscall/sysnum.h"
 #include "syscall/sysfunc.h"
 
+//syscall数组的大小
+#define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
 // 系统调用跳转
 static uint64 (*syscalls[])(void) = {
     [SYS_brk]           sys_brk,
@@ -17,9 +20,20 @@ static uint64 (*syscalls[])(void) = {
 };
 
 // 系统调用
-void syscall()
+void syscall(void)
 {
-
+    int num;
+    proc_t *proc=myproc();
+    num=proc->tf->a7;
+    if(num>0&&num<NELEM(syscalls)&&syscalls[num])
+    {
+        proc->tf->a0=syscalls[num]();
+    }
+    else 
+    {
+        printf("unknown syscall:%d pid:%d\n",num,proc->pid);
+        proc->tf->a0=-1;
+    }
 }
 
 /*

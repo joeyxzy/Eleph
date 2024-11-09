@@ -54,7 +54,7 @@ pgtbl_t proc_pgtbl_init(uint64 trapframe)
     return proc_pgtbl;
 }
 
-void proc_make_fisrt()
+void proc_make_first()
 {
     //uint64 page;
     proczero.tf=(trapframe_t*)pmem_alloc(USER);
