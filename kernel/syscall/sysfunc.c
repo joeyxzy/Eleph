@@ -27,11 +27,17 @@ uint64 sys_brk()
     else if(new_heap_top>old_heap_top)
     {
         p->heap_top=uvm_heap_grow(p->pgtbl,old_heap_top,new_heap_top-old_heap_top);
+        printf("look: heap_top = %p\n", p->heap_top);
+        vm_print(p->pgtbl);
+        printf("\n");
         return p->heap_top;
     }
     else 
     {
         p->heap_top=uvm_heap_ungrow(p->pgtbl,old_heap_top,old_heap_top-new_heap_top);
+        printf("look: heap_top = %p\n", p->heap_top);
+        vm_print(p->pgtbl);
+        printf("\n");
         return p->heap_top;
     }
 }

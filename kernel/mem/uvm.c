@@ -111,9 +111,15 @@ void uvm_munmap(uint64 begin, uint32 npages)
 // 在这里无需修正 p->heap_top
 uint64 uvm_heap_grow(pgtbl_t pgtbl, uint64 heap_top, uint32 len)
 {
+    char* mem;
     uint64 new_heap_top = heap_top + len;
-
-
+    uint64 old_heap_top = PGROUNDUP(heap_top);
+    for(uint64 a=old_heap_top;a<new_heap_top;a+=PGSIZE)
+    {
+        mem=pmem_alloc(USER);
+        memset(mem,0,PGSIZE);
+        vm_mappages(pgtbl,a,(uint64)mem,PGSIZE,PTE_W|PTE_R|PTE_X|PTE_U);
+    }
     return new_heap_top;
 }
 
@@ -122,8 +128,8 @@ uint64 uvm_heap_grow(pgtbl_t pgtbl, uint64 heap_top, uint32 len)
 uint64 uvm_heap_ungrow(pgtbl_t pgtbl, uint64 heap_top, uint32 len)
 {
     uint64 new_heap_top = heap_top - len;
-
-
+    uint64 old_heap_top=heap_top;
+    vm_unmappages(pgtbl,PGROUNDUP(new_heap_top),old_heap_top-PGROUNDUP(new_heap_top),true);
     return new_heap_top;
 }
 
