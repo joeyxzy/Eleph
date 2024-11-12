@@ -113,6 +113,7 @@ uint64 uvm_heap_grow(pgtbl_t pgtbl, uint64 heap_top, uint32 len)
 {
     char* mem;
     uint64 new_heap_top = heap_top + len;
+    if(new_heap_top>MMAP_BEGIN) panic("heap_grow out of bound");
     uint64 old_heap_top = PGROUNDUP(heap_top);
     for(uint64 a=old_heap_top;a<new_heap_top;a+=PGSIZE)
     {

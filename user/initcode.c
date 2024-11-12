@@ -10,9 +10,9 @@ int main()
     syscall(SYS_copyinstr, s);
     long long heap_top = syscall(SYS_brk, 0);
 
-    heap_top = syscall(SYS_brk, heap_top + 4096 * 10);
+    heap_top = syscall(SYS_brk, heap_top + 4096 * 8000);
 
-    heap_top = syscall(SYS_brk, heap_top - 4096 * 10);
+    heap_top = syscall(SYS_brk, heap_top - 4096 * 8000);
 
     while(1);
     return 0;
