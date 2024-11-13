@@ -47,8 +47,8 @@
         mmap_2->npages += mmap_1->npages;
         mmap_region_free(mmap_1);
     }
-}
- */
+} */
+
 // 打印以 mmap 为首的 mmap 链
 // for debug
 void uvm_show_mmaplist(mmap_region_t* mmap)
