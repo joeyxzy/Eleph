@@ -7,7 +7,7 @@
 #include "memlayout.h"
 
 // 连续虚拟空间的复制(在uvm_copy_pgtbl中使用)
-/* static void copy_range(pgtbl_t old, pgtbl_t new, uint64 begin, uint64 end)
+static void copy_range(pgtbl_t old, pgtbl_t new, uint64 begin, uint64 end)
 {
     uint64 va, pa, page;
     int flags;
@@ -27,7 +27,7 @@
         memmove((char*)page, (const char*)pa, PGSIZE);
         vm_mappages(new, va, page, PGSIZE, flags);
     }
-} */
+}
 
 // 两个 mmap_region 区域合并
 // 保留一个 释放一个 不操作 next 指针
@@ -78,17 +78,39 @@ void uvm_show_mmaplist(mmap_region_t* mmap)
 // ps: 顶级页表level = 3, level = 0 说明是页表管理的物理页
 void uvm_destroy_pgtbl(pgtbl_t pgtbl, uint32 level)
 {
-
+  if(level==0)
+  {
+    pmem_free((uint64)pgtbl,USER);
+  }
+  for(uint32 i=0;i<PGSIZE/sizeof(pte_t);i++)
+  {
+    pte_t* pte=(pte_t*)pgtbl[i];
+    uvm_destroy_pgtbl((pgtbl_t)PTE_TO_PA(*pte),level-1);
+  }
+  pmem_free((uint64)pgtbl,KERNEL);
 }
 
 // 拷贝页表 (拷贝并不包括trapframe 和 trampoline)
 void uvm_copy_pgtbl(pgtbl_t old, pgtbl_t new, uint64 heap_top, uint32 ustack_pages, mmap_region_t* mmap)
 {
     /* step-1: USER_BASE ~ heap_top */
+    copy_range(old, new, HEAP_BOTTOM, heap_top);
 
     /* step-2: ustack */
+    //最开始用户栈只安排了一页
+    copy_range(old, new, USTACK_BOTTOM-ustack_pages*PGSIZE, USTACK_BOTTOM);
 
     /* step-3: mmap_region */
+    for(mmap_region_t *region=mmap;region!=NULL;region=region->next)
+    {
+        uint64 begin=region->begin+region->npages*PGSIZE;
+        uint64 end;
+        if(region->next==NULL)
+        end=MMAP_END;
+        else 
+        end=region->next->begin;
+        copy_range(old,new,begin,end);
+    }
 }
 
 // 在用户页表和进程mmap链里 新增mmap区域 [begin, begin + npages * PGSIZE)

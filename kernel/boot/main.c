@@ -25,7 +25,7 @@ int main()
         mmap_init();
 
         proc_make_first();
-
+        
         __sync_synchronize();
         started = 1;
 

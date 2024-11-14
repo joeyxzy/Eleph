@@ -82,6 +82,14 @@ void proc_make_first()
     proczero.kstack=KSTACK(proczero.pid);
     proczero.ctx.sp=KSTACK(proczero.pid)+PGSIZE;
     proczero.ctx.ra=(uint64)trap_user_return;
+    
+/*     //LAB5 TEST
+    pgtbl_t new=proc_pgtbl_init((uint64)proczero.tf);
+    uvm_copy_pgtbl(proczero.pgtbl,new,proczero.heap_top,proczero.ustack_pages,proczero.mmap);
+    vm_print(new);
+    printf("***\n");
+    vm_print(proczero.pgtbl); */
+
     // 上下文切换
     cpu_t* cpu=mycpu();
     cpu->proc=&proczero;
