@@ -12,7 +12,7 @@ typedef struct mmap_region_node {
     struct mmap_region_node* next;
 } mmap_region_node_t;
 
-#define N_MMAP 64
+#define N_MMAP 256
 
 // mmap_region_node_t 仓库(单向链表) + 指向链表头节点的指针 + 保护仓库的锁
 static mmap_region_node_t list_mmap_region_node[N_MMAP];
@@ -59,6 +59,9 @@ mmap_region_t* mmap_region_alloc()
 void mmap_region_free(mmap_region_t* mmap)
 {
     spinlock_acquire(&list_lk);
+    mmap->begin=MMAP_BEGIN;
+    mmap->npages=0;
+    mmap->next=NULL;
     int id=((uint64)mmap-(uint64)&list_mmap_region_node->mmap)/(sizeof(mmap_region_node_t));
     list_mmap_region_node[id].next=list_head->next;
     list_head->next=&list_mmap_region_node[id];

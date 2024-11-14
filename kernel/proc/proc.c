@@ -68,6 +68,12 @@ void proc_make_first()
     proczero.heap_top=HEAP_BOTTOM;
 
     // 设置 mmap_region_t
+    proczero.mmap=mmap_region_alloc();
+    proczero.mmap->begin=MMAP_BEGIN;
+    proczero.mmap->npages=0;
+    proczero.mmap->next=mmap_region_alloc();
+    proczero.mmap->next->begin=MMAP_BEGIN;
+    proczero.mmap->next->npages=(MMAP_END-MMAP_BEGIN)/PGSIZE;
 
     // tf字段设置
     proczero.tf->epc=DATA_CODE_START;

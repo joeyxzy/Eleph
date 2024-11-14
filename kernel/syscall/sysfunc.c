@@ -48,6 +48,15 @@ uint64 sys_brk()
 // 成功返回映射空间的起始地址, 失败返回-1
 uint64 sys_mmap()
 {
+    proc_t* p=myproc();
+    uint64 begin;uint64 len;
+    arg_uint64(0,&begin);
+    arg_uint64(1,&len);
+    uint32 npages=len/PGSIZE;
+    uvm_mmap(begin,npages,PTE_R|PTE_W);
+    uvm_show_mmaplist(p->mmap);
+    vm_print(p->pgtbl);
+    printf("\n");
     return 0;
 }
 
@@ -57,6 +66,15 @@ uint64 sys_mmap()
 // 成功返回0 失败返回-1
 uint64 sys_munmap()
 {
+    proc_t* p=myproc();
+    uint64 begin;uint64 len;
+    arg_uint64(0,&begin);
+    arg_uint64(1,&len);
+    uint32 npages=len/PGSIZE;
+    uvm_munmap(begin,npages);
+    uvm_show_mmaplist(p->mmap);
+    vm_print(p->pgtbl);
+    printf("\n");
     return 0;
 }
 

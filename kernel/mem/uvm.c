@@ -32,7 +32,7 @@
 // 两个 mmap_region 区域合并
 // 保留一个 释放一个 不操作 next 指针
 // 在uvm_munmap里使用
-/* static void mmap_merge(mmap_region_t* mmap_1, mmap_region_t* mmap_2, bool keep_mmap_1)
+static void mmap_merge(mmap_region_t* mmap_1, mmap_region_t* mmap_2, bool keep_mmap_1)
 {
     // 确保有效和紧临
     assert(mmap_1 != NULL && mmap_2 != NULL, "mmap_merge: NULL");
@@ -47,7 +47,7 @@
         mmap_2->npages += mmap_1->npages;
         mmap_region_free(mmap_1);
     }
-} */
+}
 
 // 打印以 mmap 为首的 mmap 链
 // for debug
@@ -61,6 +61,17 @@ void uvm_show_mmaplist(mmap_region_t* mmap)
         printf("allocable region: %p ~ %p\n", tmp->begin, tmp->begin + tmp->npages * PGSIZE);
         tmp = tmp->next;
     }
+    mmap_region_t* head=myproc()->mmap;
+    //mmap_region_t* last=head;
+    mmap_region_t* now=head->next;
+    printf("***\n");
+    for(int index=1;now!=NULL;now=now->next,index++)
+    {
+      int start=(now->begin-MMAP_BEGIN)/PGSIZE;
+      int end=start+now->npages;
+      printf("index %d: start:%d end:%d\n",index,start,end);
+    }
+    printf("***\n");
 }
 
 // 递归释放 页表占用的物理页 和 页表管理的物理页
@@ -86,11 +97,66 @@ void uvm_mmap(uint64 begin, uint32 npages, int perm)
 {
     if(npages == 0) return;
     assert(begin % PGSIZE == 0, "uvm_mmap: begin not aligned");
-
+    proc_t* p=myproc();
+    mmap_region_t* head=p->mmap;
     // 修改 mmap 链 (分情况的链式操作)
-
+    mmap_region_t* now=head->next;
+    mmap_region_t* last=head;
+    for(;now!=NULL;last=now,now=now->next)
+    {
+      printf("头部未对齐：%d %d\n",begin>now->begin,begin+npages*PGSIZE<=now->begin+now->npages*PGSIZE);
+      printf("头部对齐：%d\n",begin==now->begin);
+      //头部未对齐      
+      if(begin>now->begin&&begin+npages*PGSIZE<=now->begin+now->npages*PGSIZE)
+      {
+        //尾部未对齐
+        if(begin+npages*PGSIZE<now->begin+now->npages*PGSIZE)
+        {
+          mmap_region_t* new=mmap_region_alloc();
+          new->begin=begin+npages*PGSIZE;
+          new->npages=now->npages-(begin-now->begin)/PGSIZE-npages;
+          new->next=now->next;
+          now->next=new;
+          now->npages=(begin-now->begin)/PGSIZE;
+          break;
+        }
+        //尾部对齐
+        else if(begin+npages*PGSIZE==now->begin+now->npages*PGSIZE)
+        {
+          now->npages-=(begin-now->begin)/PGSIZE;
+          break;
+        }
+      }
+      //头部对齐
+      else if(begin==now->begin||(begin==0&&npages<=now->npages))
+      {
+        //尾部对齐
+        if(npages==now->npages)
+        {
+          begin=now->begin;
+          last->next=now->next;
+          mmap_region_free(now);
+          break;
+        }
+        //尾部未对齐
+        else if(npages<now->npages)
+        {
+          begin=now->begin;
+          now->begin=now->begin+npages*PGSIZE;
+          now->npages=now->npages-npages;
+          break;
+        }
+      }
+    }
+    assert(now!=NULL,"uvm_mmap failed");
     // 修改页表 (物理页申请 + 页表映射)
-
+    uint64 va = begin;
+    for (uint32 i = 0; i < npages; i++)
+    {
+        char *pa = pmem_alloc(false);
+        vm_mappages(p->pgtbl, va, (uint64)pa, PGSIZE, perm);
+        va += PGSIZE;
+    }
 }
 
 // 在用户页表和进程mmap链里释放mmap区域 [begin, begin + npages * PGSIZE)
@@ -98,13 +164,81 @@ void uvm_munmap(uint64 begin, uint32 npages)
 {
     if(npages == 0) return;
     assert(begin % PGSIZE == 0, "uvm_munmap: begin not aligned");
-
+    proc_t* p=myproc();
+    mmap_region_t* head=p->mmap;
+    uint64 end=begin+npages*PGSIZE;
     // new mmap_region 的产生
-
+    mmap_region_t* new=mmap_region_alloc();
+    new->begin=begin;
+    new->npages=npages;
     // 尝试合并 mmap_region
-
+    mmap_region_t* last=head;
+    mmap_region_t* now=last->next;
+    printf("need:%d %d\n",(begin-MMAP_BEGIN)/PGSIZE,(begin-MMAP_BEGIN)/PGSIZE+npages);
+    for(;now!=NULL;last=now,now=now->next)
+    {
+      printf("had: last:%d %d\nnext:%d %d\n",(last->begin-MMAP_BEGIN)/PGSIZE,(last->begin-MMAP_BEGIN)/PGSIZE+last->npages,(now->begin-MMAP_BEGIN)/PGSIZE,(now->begin-MMAP_BEGIN)/PGSIZE+now->npages);
+      uint64 lastend=last->begin+last->npages*PGSIZE;
+      if(begin>=lastend&&end<=now->begin)
+      {
+        //首尾都对齐
+        if(begin==lastend&&end==now->begin)
+        {
+          if(last!=head)
+          {
+            mmap_merge(last,new,true);
+            mmap_merge(last,now,true);
+            last->next=now->next;
+          }
+          else
+          {
+            mmap_merge(new,now,false);
+            now->begin=new->begin;
+            now->npages+=new->npages;
+          }
+        }
+        //首部对齐
+        else if(begin==lastend)
+        {
+          if(last!=head)
+            mmap_merge(last,new,true);
+          else
+          {
+            new->next=last->next;
+            last->next=new;
+          }
+        }
+        //尾部对齐
+        else if(end==now->begin)
+        {
+          mmap_merge(new,now,false);
+        }
+        //首尾都不对齐
+        else
+        {
+          assert(begin>lastend&&end<now->begin,"uvm_munmap error");
+          last->next=new;
+          new->next=now;
+        }
+        break;
+      }
+      //确保头尾没有重合在前后两个区域中
+      else
+      {
+        assert(end<=last->begin||begin>=now->begin+now->npages*PGSIZE,"unvalid munmap");
+      }
+    }
+    if(now==NULL)
+    {
+      if(begin==last->begin+last->npages*PGSIZE)
+      {
+        mmap_merge(last,new,true);
+      }
+      else 
+      last->next=new;
+    }
     // 页表释放
-
+    vm_unmappages(p->pgtbl,begin,npages*PGSIZE,true);
 }
 
 // 用户堆空间增加, 返回新的堆顶地址 (注意堆顶最大值限制)
