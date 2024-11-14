@@ -6,6 +6,7 @@
 #include "lib/print.h"
 #include "syscall/sysfunc.h"
 #include "syscall/syscall.h"
+#include "../include/memlayout.h"
 
 // 堆伸缩
 // uint64 new_heap_top 新的堆顶 (如果是0代表查询, 返回旧的堆顶)
@@ -48,11 +49,14 @@ uint64 sys_brk()
 // 成功返回映射空间的起始地址, 失败返回-1
 uint64 sys_mmap()
 {
+    
     proc_t* p=myproc();
     uint64 begin;uint64 len;
     arg_uint64(0,&begin);
     arg_uint64(1,&len);
     uint32 npages=len/PGSIZE;
+    if(begin!=0&&(begin+len>MMAP_END||begin<MMAP_BEGIN))
+    return -1;
     uvm_mmap(begin,npages,PTE_R|PTE_W);
     uvm_show_mmaplist(p->mmap);
     vm_print(p->pgtbl);
@@ -71,6 +75,8 @@ uint64 sys_munmap()
     arg_uint64(0,&begin);
     arg_uint64(1,&len);
     uint32 npages=len/PGSIZE;
+    if(begin+len>MMAP_END||begin<MMAP_BEGIN)
+    return -1; 
     uvm_munmap(begin,npages);
     uvm_show_mmaplist(p->mmap);
     vm_print(p->pgtbl);
